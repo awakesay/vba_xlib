@@ -6,9 +6,9 @@ Attribute VB_Name = "console"
 '       Print functions.
 
 '   ■Function list
-'       Pprint          Display value in a structured way in the Immediate window. (Pretty print)
-'       Println         Display value in the immediate window. (Print line)
-'       Print2D         Display two dimensional array in the immediate window. (Print two dimension array)
+'       Pprint      Display value in a structured way in the Immediate window. (Pretty print)
+'       Println     Display value in the immediate window. (Print line)
+'       Print2D     Display two dimensional array in the immediate window. (Print two dimension array)
 
 '   ■Aboud display
 '       String:     String type is enclose in ".
@@ -141,7 +141,7 @@ End Sub
 
 
 ' ================================================================================
-' Pprint and Println common functions.
+' "Pprint" and "Println" common functions.
 
 
 Private Function EncodeAny(Any_ As Variant) As Variant
@@ -652,6 +652,9 @@ Private Function GetImmediateWindow() As Object
     ' Return immediate window object.
     
     Dim WindowElement As Object
+    ' Check "Trust access to the VBA project object model".
+    ' JP: [オプション] -> [トラスト センター] -> [マクロの設定] -> [VBA プロジェクト オブジェクト モデルへのアクセスを信頼する] にチェックを入れる。
+    ' EN: I don't understand this notation because there is no English version.
     For Each WindowElement In Application.VBE.Windows
         If WindowElement.Type = 5 Then
             ' 5: vbext_wt_Immediate
@@ -663,29 +666,6 @@ Private Function GetImmediateWindow() As Object
 End Function
 
 
-Private Sub TestAnyToString()
-    ' Test code.
-    Dim EmptyArray() As Variant
-    Dim Array1D(9) As Double
-    Dim Array2D(10, 5 To 15) As Long
-    
-    Debug.Print "String: " & console.AnyToString("String")
-    Debug.Print "Integer: " & console.AnyToString(123456)
-    Debug.Print "Real Number: " & console.AnyToString(123456.789)
-    Debug.Print "Boolean: " & console.AnyToString(True)
-    Debug.Print "Now: " & console.AnyToString(Now())
-    Debug.Print "Date: " & console.AnyToString(Date)
-    Debug.Print "Time: " & console.AnyToString(Time())
-    Debug.Print "Empty: " & console.AnyToString(Empty)
-    Debug.Print "Null: " & console.AnyToString(Null)
-    Debug.Print "Nothing: " & console.AnyToString(Nothing)
-    Debug.Print "Collection: " & console.AnyToString(New Collection)
-    Debug.Print "EmptyArray: " & console.AnyToString(EmptyArray)
-    Debug.Print "Array(): " & console.AnyToString(Array())
-    Debug.Print "Array1D: " & AnyToString(Array1D)
-    Debug.Print "Array2D: " & AnyToString(Array2D)
-
-End Sub
 Private Function AnyToString(Any_ As Variant) As String
     
     Dim AnyTypeName As String
