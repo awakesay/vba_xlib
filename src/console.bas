@@ -6,9 +6,9 @@ Attribute VB_Name = "console"
 '       Print functions.
 
 '   ■Function list
-'       Pprint          Display value in a structured way in the Immediate window.
-'       Println         Display value in the immediate window.
-'       Print2D         Display two dimensional array in the immediate window.
+'       Pprint      Display value in a structured way in the Immediate window. (Pretty print)
+'       Println     Display value in the immediate window. (Print line)
+'       Print2D     Display two dimensional array in the immediate window. (Print two dimension array)
 
 '   ■Aboud display
 '       String:     String type is enclose in ".
@@ -20,8 +20,8 @@ Attribute VB_Name = "console"
 '       Boolean:    Display as is.
 '                   Examples -> True or False
 '
-'       Date:       Date type is enclose in #.
-'                   Examples -> #2023/05/07 9:30:13#, #2023/05/07#, #9:30:13#
+'       Date:       Display as is.
+'                   Examples -> 2023/05/07 9:30:13, 2023/05/07, 9:30:13
 '
 '       Object:     Object type is enclose in <>.
 '                   Examples -> <Worksheet>, <Collection(2)>, <Dictionary(1)
@@ -39,7 +39,7 @@ Option Base 0
 
 
 ' ================================================================================
-' Pprint (Pretty pring)
+' Pprint (Pretty print)
 
 
 Public Sub Pprint(ParamArray Any_() As Variant)
@@ -56,10 +56,11 @@ Public Sub Pprint(ParamArray Any_() As Variant)
 End Sub
 
 
-Public Function EncodeArrayToStructString(Any_ As Variant) As String
+Private Function EncodeArrayToStructString(Any_ As Variant) As String
     ' Returns Any as a structured string.
     
     Const INDENT_SIZE = 4
+    
     Dim EncodeArray As Variant
     Dim i As Long
     Dim Indent As Long
@@ -129,22 +130,22 @@ End Function
 Public Sub Println(ParamArray Any_() As Variant)
     ' Displays Any in the Immediate window.
     
-    Dim El As Variant
+    Dim Element As Variant
     
     Call console.DisplayImmediateWindow
     
-    For Each El In Any_
-        Debug.Print Join(console.EncodeAny(El), vbNullString)
-    Next El
+    For Each Element In Any_
+        Debug.Print Join(console.EncodeAny(Element), vbNullString)
+    Next Element
     
 End Sub
 
 
 ' ================================================================================
-' Pprint and Println common functions.
+' "Pprint" and "Println" common functions.
 
 
-Public Function EncodeAny(Any_ As Variant) As Variant
+Private Function EncodeAny(Any_ As Variant) As Variant
     ' Returns the array to display the string.
     
     Dim EncodeStrings As Object
@@ -158,7 +159,7 @@ Public Function EncodeAny(Any_ As Variant) As Variant
 End Function
 
 
-Public Function EncodeAnyRecursive(Any_ As Variant, _
+Private Function EncodeAnyRecursive(Any_ As Variant, _
     ByRef EncodeStrings As Object, ByRef ObjectAddress As Object, _
     Optional IsReturnValue As Boolean = False _
 ) As Variant
@@ -192,7 +193,7 @@ Public Function EncodeAnyRecursive(Any_ As Variant, _
 End Function
 
 
-Public Sub EncodeArray1D(Any_ As Variant, ByRef EncodeStrings As Object, ByRef ObjectAddress As Object)
+Private Sub EncodeArray1D(Any_ As Variant, ByRef EncodeStrings As Object, ByRef ObjectAddress As Object)
     ' Encoding one dimension array.
     
     Dim i As Long
@@ -212,11 +213,11 @@ Public Sub EncodeArray1D(Any_ As Variant, ByRef EncodeStrings As Object, ByRef O
 End Sub
 
 
-Public Sub ParseDictionary(Any_ As Variant, ByRef EncodeStrings As Object, ByRef ObjectAddress As Object)
+Private Sub ParseDictionary(Any_ As Variant, ByRef EncodeStrings As Object, ByRef ObjectAddress As Object)
     ' Encoding dictionary object.
     
     ' If recursive object then omitted elements of the object.
-    If console.GetAndSetObjectAddress(Any_, ObjectAddress) Then
+    If console.IsExistsObjectAddress(Any_, ObjectAddress) Then
         Call EncodeStrings.Add(console.ObjectToString(Any_) & "{ … ]")
         Exit Sub
     End If
@@ -241,11 +242,11 @@ Public Sub ParseDictionary(Any_ As Variant, ByRef EncodeStrings As Object, ByRef
 End Sub
 
 
-Public Sub ParseIterableObject(Any_ As Variant, ByRef EncodeStrings As Object, ByRef ObjectAddress As Object)
+Private Sub ParseIterableObject(Any_ As Variant, ByRef EncodeStrings As Object, ByRef ObjectAddress As Object)
     ' Encoding iterable object. (ArrayList, Collection, Workbooks, ... )
     
     ' If recursive object then omitted elements of the object.
-    If console.GetAndSetObjectAddress(Any_, ObjectAddress) Then
+    If console.IsExistsObjectAddress(Any_, ObjectAddress) Then
         Call EncodeStrings.Add(console.AnyToString(Any_) & "[ ... ]")
         Exit Sub
     End If
@@ -268,14 +269,14 @@ Public Sub ParseIterableObject(Any_ As Variant, ByRef EncodeStrings As Object, B
 End Sub
 
 
-Public Function GetAndSetObjectAddress(Any_ As Variant, ByRef ObjectAddress As Object) As Boolean
+Private Function IsExistsObjectAddress(Any_ As Variant, ByRef ObjectAddress As Object) As Boolean
 
     If IsObject(Any_) Then
         If ObjectAddress.exists(CDbl(ObjPtr(Any_))) Then
-            ' Already Exist object.
-            GetAndSetObjectAddress = True
+            ' If already exist object then return "True".
+            IsExistsObjectAddress = True
         Else
-            ' Register memory address.
+            ' If not registered then return "False" and register memory address.
             Call ObjectAddress.Add(CDbl(ObjPtr(Any_)), Empty)
         End If
     End If
@@ -283,7 +284,7 @@ Public Function GetAndSetObjectAddress(Any_ As Variant, ByRef ObjectAddress As O
 End Function
 
 
-Public Function IsOpenBracket(Str_ As String) As Boolean
+Private Function IsOpenBracket(Str_ As String) As Boolean
 
     Select Case Right(Str_, 1)
         Case "[", "{"
@@ -293,7 +294,7 @@ Public Function IsOpenBracket(Str_ As String) As Boolean
 End Function
         
 
-Public Function IsCloseBracket(Str_ As String) As Boolean
+Private Function IsCloseBracket(Str_ As String) As Boolean
 
     Select Case Str_
         Case "]", "}"
@@ -304,12 +305,12 @@ End Function
 
 
 ' ================================================================================
-' Print2D (Print two dimension)
+' Print2D (Print two dimension array)
 
 
 Public Sub Print2D(Any_ As Variant, Optional Head As Long = 10, Optional Tail As Long = 10)
 
-    ' Check args.
+    ' Check arguments.
     Debug.Assert IsArray(Any_)                          ' Not array.
     Debug.Assert console.GetDimensionOfArray(Any_) = 2  ' Not two dimension array.
     
@@ -331,7 +332,7 @@ Public Sub Print2D(Any_ As Variant, Optional Head As Long = 10, Optional Tail As
         ElseIf r >= (RowUBnd - Tail) Then
             Call RowIndexes.Add(r)
         Else
-            ' Skip index.
+            ' Jump index.
             r = RowUBnd - Tail
         End If
     Next
@@ -351,6 +352,12 @@ Public Sub Print2D(Any_ As Variant, Optional Head As Long = 10, Optional Tail As
     Dim RowIndex As Variant
     Dim ColIndex As Variant
     
+    '   ColsArray()[
+    '       RowArray()[ ... ],
+    '       RowArray()[ ... ],
+    '       ...
+    '   ]
+    
     ReDim ColsArray(ColIndexes.Count - 1) As Variant
     ReDim AlignColsArray(ColIndexes.Count - 1) As Variant
     
@@ -359,11 +366,11 @@ Public Sub Print2D(Any_ As Variant, Optional Head As Long = 10, Optional Tail As
         ReDim RowArray(RowIndexes.Count) As String
         ReDim AlignRowArray(RowIndexes.Count) As Byte
         r = 1
-        RowArray(0) = console.AnyToString(ColIndex)
-        AlignRowArray(0) = 1
+        RowArray(0) = console.AnyToString(ColIndex)     ' Index string.
+        AlignRowArray(0) = 1                            ' Align center.
         For Each RowIndex In RowIndexes
             RowArray(r) = console.AnyToString(Any_(RowIndex, ColIndex))
-            AlignRowArray(r) = console.GetAlignNumber(Any_(RowIndex, ColIndex))
+            AlignRowArray(r) = console.GetAlignEnum(Any_(RowIndex, ColIndex))
             r = r + 1
         Next RowIndex
         ColsArray(c) = RowArray
@@ -382,7 +389,7 @@ Public Sub Print2D(Any_ As Variant, Optional Head As Long = 10, Optional Tail As
         r = r + 1
     Next RowIndex
     
-    ' Set align.
+    ' Set align. Fill space char.
     RowStringIndexes = console.SetFillAlign(RowStringIndexes, AlignRowStringIndexes)
     For c = LBound(ColsArray) To UBound(ColsArray)
         ColsArray(c) = console.SetFillAlign(ColsArray(c), AlignColsArray(c))
@@ -399,7 +406,7 @@ Public Sub Print2D(Any_ As Variant, Optional Head As Long = 10, Optional Tail As
     
     InfoRowString = GetDisplayRowString(ColsArray, RowStringIndexes, 0)
     
-    ' Add header string.
+    ' Add header.
     Call DisplayStrings.Add(console.GetRuledLineString(ColsArray, RowStringIndexes, "┏┳┯━┓"))
     Call DisplayStrings.Add(InfoRowString)
     Call DisplayStrings.Add(console.GetRuledLineString(ColsArray, RowStringIndexes, "┣╋┿━┫"))
@@ -409,7 +416,7 @@ Public Sub Print2D(Any_ As Variant, Optional Head As Long = 10, Optional Tail As
     For Each RowIndex In RowIndexes
     
         If Not RowIndex = LastRowIndex + 1 Then
-            ' Add middle header string.
+            ' Add middle header.
             Call DisplayStrings.Add(console.GetRuledLineString(ColsArray, RowStringIndexes, "┠╂┼─┨"))
             Call DisplayStrings.Add(InfoRowString)
             Call DisplayStrings.Add(console.GetRuledLineString(ColsArray, RowStringIndexes, "┠╂┼─┨"))
@@ -423,12 +430,12 @@ Public Sub Print2D(Any_ As Variant, Optional Head As Long = 10, Optional Tail As
         
     Next RowIndex
     
-    ' Add fotter string.
+    ' Add fotter.
     Call DisplayStrings.Add(console.GetRuledLineString(ColsArray, RowStringIndexes, "┣╋┿━┫"))
     Call DisplayStrings.Add(InfoRowString)
     Call DisplayStrings.Add(console.GetRuledLineString(ColsArray, RowStringIndexes, "┗┻┷━┛"))
     
-    ' Display in the immediate window.
+    ' Output immediate window.
     Dim DisplayRowString As Variant
     
     For Each DisplayRowString In DisplayStrings
@@ -440,7 +447,7 @@ Public Sub Print2D(Any_ As Variant, Optional Head As Long = 10, Optional Tail As
 End Sub
 
 
-Public Function GetRuledLineString( _
+Private Function GetRuledLineString( _
     ColsArray As Variant, _
     RowStringIndexes() As String, _
     RuledLineStrings As String _
@@ -474,14 +481,14 @@ Public Function GetRuledLineString( _
 End Function
 
 
-Public Function GetDisplayRowString( _
+Private Function GetDisplayRowString( _
     ColsArray As Variant, _
     RowStringIndexes() As String, _
     Index As Long _
 ) As String
-    '
     
     Dim RowStringArray() As String
+    Dim IndexString As String
     Dim i As Long
     
     ReDim RowStringArray(UBound(ColsArray))
@@ -490,15 +497,15 @@ Public Function GetDisplayRowString( _
         RowStringArray(i) = ColsArray(i)(Index)
     Next i
     
-    GetDisplayRowString = "┃" & RowStringIndexes(Index) & "┃" _
-                          & Join(RowStringArray, "│") & _
-                          "┃" & RowStringIndexes(Index) & "┃"
+    IndexString = "┃" & RowStringIndexes(Index) & "┃"
+    
+    GetDisplayRowString = IndexString & Join(RowStringArray, "│") & IndexString
 
 End Function
 
 
-Public Function SetFillAlign(RowArray As Variant, AlignArray As Variant) As String()
-    '
+Private Function SetFillAlign(RowArray As Variant, AlignArray As Variant) As String()
+    ' Return align string of space filled.
     
     Dim FillArray() As String
     Dim MaxLength As Long
@@ -508,60 +515,76 @@ Public Function SetFillAlign(RowArray As Variant, AlignArray As Variant) As Stri
     
     ' Get max length.
     For i = LBound(RowArray) To UBound(RowArray)
-        If console.LenByte(CStr(RowArray(i))) > MaxLength Then MaxLength = console.LenByte(CStr(RowArray(i)))
+        If console.LenByte(CStr(RowArray(i))) > MaxLength Then
+            MaxLength = console.LenByte(CStr(RowArray(i)))
+        End If
     Next i
     
-    ' Fix to multiple lengths of 2.
+    ' Fix for even number.
     If Not MaxLength Mod 2 = 0 Then MaxLength = MaxLength + 1
     
     ' Filling.
     For i = LBound(RowArray) To UBound(RowArray)
         Select Case AlignArray(i)
-            Case 0  ' Left
+            Case 0
+                ' Left
                 FillArray(i) = console.FillByteRight(CStr(RowArray(i)), MaxLength)
-            Case 1  ' Center
+            Case 1
+                ' Center
                 FillArray(i) = console.FillByteCenter(CStr(RowArray(i)), MaxLength)
-            Case 2  ' Right
+            Case 2
+                ' Right
                 FillArray(i) = console.FillByteLeft(CStr(RowArray(i)), MaxLength)
         End Select
     Next i
     
-    ' Return.
     SetFillAlign = FillArray
     
 End Function
 
 
-Public Function GetAlignNumber(Any_ As Variant) As Byte
+Private Function GetAlignEnum(Any_ As Variant) As Byte
     ' 0: Left
     ' 1: Center
     ' 2: Right
     
     Select Case TypeName(Any_)
         Case "String"
-            GetAlignNumber = 0
+            GetAlignEnum = 0
+            
         Case "Byte", "Integer", "Long", "LongLong", "Currency"
-            GetAlignNumber = 2
+            GetAlignEnum = 2
+        
         Case "Single", "Double", "Decimal"
-            GetAlignNumber = 2
+            GetAlignEnum = 2
+        
         Case "Boolean"
-            GetAlignNumber = 1
+            GetAlignEnum = 1
+        
         Case "Date"
-            GetAlignNumber = 0
+            GetAlignEnum = 0
+        
         Case "Empty", "Null", "Nothing"
-            GetAlignNumber = 1
+            GetAlignEnum = 1
+        
         Case Else
             If IsArray(Any_) Then
-                GetAlignNumber = 1
+                ' Array
+                GetAlignEnum = 1
+            ElseIf IsObject(Any_) Then
+                ' Object
+                GetAlignEnum = 1
             Else
-                GetAlignNumber = 1
+                ' Unknown
+                GetAlignEnum = 1
             End If
+    
     End Select
     
 End Function
 
 
-Public Function IsInteger(Any_ As Variant) As Boolean
+Private Function IsInteger(Any_ As Variant) As Boolean
     
     Select Case TypeName(Any_)
         Case "Byte", "Integer", "Long", "LongLong", "Currency"
@@ -575,14 +598,16 @@ Public Function IsInteger(Any_ As Variant) As Boolean
 End Function
 
 
-Public Function LenByte(Str_ As String) As Long
-    
+Private Function LenByte(Str_ As String) As Long
+    ' Return byte length of string.
+    ' "aaaa" -> 4
+    ' "ああ" -> 4
     LenByte = LenB(StrConv(Str_, vbFromUnicode))
     
 End Function
 
 
-Public Function FillByteLeft(Str_ As String, ByteLength As Long, Optional FillChar As String = " ") As String
+Private Function FillByteLeft(Str_ As String, ByteLength As Long, Optional FillChar As String = " ") As String
 
     Dim FillLength As Long
     
@@ -597,7 +622,7 @@ Public Function FillByteLeft(Str_ As String, ByteLength As Long, Optional FillCh
 End Function
 
 
-Public Function FillByteRight(Str_ As String, ByteLength As Long, Optional FillChar As String = " ") As String
+Private Function FillByteRight(Str_ As String, ByteLength As Long, Optional FillChar As String = " ") As String
 
     Dim FillLength As Long
     
@@ -612,15 +637,15 @@ Public Function FillByteRight(Str_ As String, ByteLength As Long, Optional FillC
 End Function
 
 
-Public Function FillByteCenter(Str_ As String, Length As Long, Optional FillChar As String = " ") As String
+Private Function FillByteCenter(Str_ As String, ByteLength As Long, Optional FillChar As String = " ") As String
 
     Dim LeftFillByteLength As Long
     Dim RightFillByteLength As Long
     
-    LeftFillByteLength = Int((Length - console.LenByte(Str_)) / 2)
+    LeftFillByteLength = Int((ByteLength - console.LenByte(Str_)) / 2)
     RightFillByteLength = LeftFillByteLength
     
-    If (Length - console.LenByte(Str_)) Mod 2 Then
+    If (ByteLength - console.LenByte(Str_)) Mod 2 Then
         RightFillByteLength = RightFillByteLength + 1
     End If
     
@@ -637,9 +662,8 @@ End Function
 ' Common functions.
 
 
-Public Sub DisplayImmediateWindow()
-    ' Display immediate window.
-    
+Private Sub DisplayImmediateWindow()
+
     Static ImmediateWindow As Object
     
     If ImmediateWindow Is Nothing Then Set ImmediateWindow = console.GetImmediateWindow()
@@ -649,11 +673,15 @@ Public Sub DisplayImmediateWindow()
 End Sub
 
 
-Public Function GetImmediateWindow() As Object
+Private Function GetImmediateWindow() As Object
     ' Return immediate window object.
     
     Dim WindowElement As Object
+    
     For Each WindowElement In Application.VBE.Windows
+        ' If an error occurs in the above line, check "Trust access to the VBA project object model".
+        ' JP: [オプション] -> [トラスト センター] -> [マクロの設定] -> [VBA プロジェクト オブジェクト モデルへのアクセスを信頼する] にチェックを入れる。
+        ' EN: I don't understand this notation because there is no English version.
         If WindowElement.Type = 5 Then
             ' 5: vbext_wt_Immediate
             Set GetImmediateWindow = WindowElement
@@ -664,30 +692,7 @@ Public Function GetImmediateWindow() As Object
 End Function
 
 
-Public Sub TestAnyToString()
-    ' Test code.
-    Dim EmptyArray() As Variant
-    Dim Array1D(9) As Double
-    Dim Array2D(10, 5 To 15) As Long
-    
-    Debug.Print "String: " & console.AnyToString("String")
-    Debug.Print "Integer: " & console.AnyToString(123456)
-    Debug.Print "Real Number: " & console.AnyToString(123456.789)
-    Debug.Print "Boolean: " & console.AnyToString(True)
-    Debug.Print "Now: " & console.AnyToString(Now())
-    Debug.Print "Date: " & console.AnyToString(Date)
-    Debug.Print "Time: " & console.AnyToString(Time())
-    Debug.Print "Empty: " & console.AnyToString(Empty)
-    Debug.Print "Null: " & console.AnyToString(Null)
-    Debug.Print "Nothing: " & console.AnyToString(Nothing)
-    Debug.Print "Collection: " & console.AnyToString(New Collection)
-    Debug.Print "EmptyArray: " & console.AnyToString(EmptyArray)
-    Debug.Print "Array(): " & console.AnyToString(Array())
-    Debug.Print "Array1D: " & AnyToString(Array1D)
-    Debug.Print "Array2D: " & AnyToString(Array2D)
-
-End Sub
-Public Function AnyToString(Any_ As Variant) As String
+Private Function AnyToString(Any_ As Variant) As String
     
     Dim AnyTypeName As String
     
@@ -703,18 +708,21 @@ Public Function AnyToString(Any_ As Variant) As String
         
         Case "Single", "Double", "Decimal"
             Dim DecPointIndex As Long
-            DecPointIndex = InStr(Any_, ".")                                ' Get decimal point index.
+             ' Get decimal point index.
+            DecPointIndex = InStr(Any_, ".")
             If DecPointIndex Then
-                AnyToString = FormatNumber(Any_, Len(Any_) - DecPointIndex) ' Decimal.
+                ' Exist decimal point.
+                AnyToString = FormatNumber(Any_, Len(Any_) - DecPointIndex)
             Else
-                AnyToString = FormatNumber(Any_, 0)                         ' Not decimal.
+                ' Not Exist decimal point.
+                AnyToString = FormatNumber(Any_, 0)
             End If
             
         Case "Boolean"
             AnyToString = CStr(Any_)
         
         Case "Date"
-            AnyToString = "#" & FormatDateTime(Any_, vbGeneralDate) & "#"
+            AnyToString = FormatDateTime(Any_, vbGeneralDate)
         
         Case "Empty", "Null", "Nothing"
             AnyToString = AnyTypeName
@@ -729,7 +737,7 @@ Public Function AnyToString(Any_ As Variant) As String
                 AnyToString = console.ObjectToString(Any_)
             
             Else
-                ' Unknown
+                ' Unknown type. Please issue report.
                 Debug.Assert False
                 
             End If
@@ -739,28 +747,37 @@ Public Function AnyToString(Any_ As Variant) As String
 End Function
 
 
-Public Function ArrayToString(Any_ As Variant) As String
+Private Function ArrayToString(Any_ As Variant) As String
     ' Return array string and array size.
+    '   Example:
+    '       Dim arr() As Variant:           Variant()
+    '       Dim arr(5) As Long:             Long(5)
+    '       Dim arr(2, 3 To 5) As Double:   Double(2, 3 To 5)
     
-    Dim BoundArray As Variant
+    Dim BoundsArray As Variant
     Dim i As Long
     
-    BoundArray = console.GetBoundsOfArray(Any_)     ' Example:
-                                                    '   Variant(10)         Base 0.
-    For i = 0 To UBound(BoundArray)                 '   String(5 To 15)     Base not 0.
-        If BoundArray(i)(0) = 0 Then                '   Long(100, 2 To 130) Multi dimension array.
-            BoundArray(i) = BoundArray(i)(1)        '   Object()            Empty array.
+    BoundsArray = console.GetBoundsOfArray(Any_)
+                                                    
+    For i = 0 To UBound(BoundsArray)
+        If BoundsArray(i)(0) = 0 Then
+            ' Base 0.
+            BoundsArray(i) = BoundsArray(i)(1)
         Else
-            BoundArray(i) = BoundArray(i)(0) & " To " & BoundArray(i)(1)
+            ' Base not 0.
+            BoundsArray(i) = BoundsArray(i)(0) & " To " & BoundsArray(i)(1)
         End If
     Next i
     
-    ArrayToString = Replace(TypeName(Any_), "()", "") & "(" & Join(BoundArray, ", ") & ")"
+    ArrayToString = Replace(TypeName(Any_), "()", "(" & Join(BoundsArray, ", ") & ")")
     
 End Function
 
 
-Public Function ObjectToString(Any_ As Variant) As String
+Private Function ObjectToString(Any_ As Variant) As String
+    ' Return string notation of object.
+    ' Iterable object:      <Object(Count)>
+    ' Not Iterable object:  <Object>
     
     Dim IterCount As Long
     
@@ -777,7 +794,7 @@ Public Function ObjectToString(Any_ As Variant) As String
 End Function
 
 
-Public Function GetBoundsOfArray(Any_ As Variant) As Variant
+Private Function GetBoundsOfArray(Any_ As Variant) As Variant
     ' Example
     '   Dim Array(1, 2 To 5) As Variant
     '   Return: [
@@ -794,20 +811,21 @@ Public Function GetBoundsOfArray(Any_ As Variant) As Variant
         Exit Function
     End If
     
-    Dim BoundArray As Variant
+    Dim BoundsArray As Variant
     Dim i As Long
     
-    ReDim BoundArray(DimensionLength - 1)
+    ReDim BoundsArray(DimensionLength - 1) As Variant
+    
     For i = 0 To DimensionLength - 1
-        BoundArray(i) = Array(LBound(Any_, i + 1), UBound(Any_, i + 1))
+        BoundsArray(i) = Array(LBound(Any_, i + 1), UBound(Any_, i + 1))
     Next i
     
-    GetBoundsOfArray = BoundArray
+    GetBoundsOfArray = BoundsArray
     
 End Function
 
 
-Public Function GetDimensionOfArray(Any_ As Variant) As Long
+Private Function GetDimensionOfArray(Any_ As Variant) As Long
     ' -1: Not array.
     '  0: Empty array.
     '  1: 1 dimension array.
@@ -818,6 +836,7 @@ Public Function GetDimensionOfArray(Any_ As Variant) As Long
 
     Call Err.Clear
     On Error Resume Next
+    
     Do
         DimensionLength = DimensionLength + 1
         Dummy = UBound(Any_, DimensionLength)
@@ -829,15 +848,16 @@ Public Function GetDimensionOfArray(Any_ As Variant) As Long
             Exit Do
         ElseIf Dummy = -1 Then
             GetDimensionOfArray = 0         ' Empty array.
-            Exit Do                         '
+            Exit Do
         End If
     Loop
+    
     Call Err.Clear
     
 End Function
 
 
-Public Function GetCountOfIterableObject(Any_ As Variant) As Long
+Private Function GetCountOfIterableObject(Any_ As Variant) As Long
     ' If Iterable object then return "Count" property of object.
     ' Other than that, return -1.
     
@@ -848,6 +868,7 @@ Public Function GetCountOfIterableObject(Any_ As Variant) As Long
     On Error Resume Next
     
     AnyCount = Any_.Count
+    
     For Each Element In Any_
         Exit For
     Next Element
@@ -863,17 +884,24 @@ Public Function GetCountOfIterableObject(Any_ As Variant) As Long
 End Function
 
 
-Public Function GetDefaultOfArray(Any_ As Variant, Index As Long, Optional Default As Variant = Empty) As Variant
+Private Function GetDefaultOfArray(Any_ As Variant, Index As Long, Optional Default As Variant = Empty) As Variant
     ' Returns the element of the specified index of the array.
     ' If index is out of range then return "Default" value.
     
     Call Err.Clear
     On Error Resume Next
+    
     GetDefaultOfArray = Any_(Index)
-    If Err.Number = 9 Then GetDefaultOfArray = Default
+    
+    If Err.Number = 9 Then
+        GetDefaultOfArray = Default
+    End If
+    
     Call Err.Clear
     
 End Function
+
+
 
 
 
